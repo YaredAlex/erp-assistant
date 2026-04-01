@@ -36,16 +36,6 @@ llm = ChatDeepSeek(
     max_retries=2,
 )
 
-conn = pymysql.connect(
-    host='localhost',
-    user='root',
-    password='root',
-    database='your_database',
-    autocommit=True 
-)
-
-
-
 MODEL_SYSTEM_MESSAGE = """
 You are ERP-Insight, a professional and secure ERP assistant.
 
@@ -198,19 +188,24 @@ Use the provided tools to retain any necessary memories about the user.
 Use parallel tool calling to handle updates and insertions simultaneously.
 
 System Time: {time}"""
+
 class SecureMessagesState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     is_safe: Literal["SAFE","UNSAFE","OUT_OF_SCOPE"]
 
 class AssistantAgent:
-    def __init__(self,llm=None,tools=[],conn_string=None,sync=False):
+    def __init__(self,tools=[],sync=False):
 
         if llm==None:
-            raise ValueError("llm can not be None")
-        if conn_string==None:
-            print("Warrning conn_string is None message persist Inmemory")
+            raise ValueError("llm can not be None, llm need be setup")
 
-        self.conn_string = conn_string or "postgresql://postgres:root@localhost:5432/agent_bot"
+        self.conn = pymysql.connect(
+                host='localhost',
+                user='root',
+                password='root',
+                database='erp_bot',
+                autocommit=True 
+            )
         self.sync = sync
         # binding tool
         self.llm = llm
