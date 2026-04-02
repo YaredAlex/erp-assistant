@@ -16,7 +16,7 @@ async def main():
     agent = await init_agent()
     user_id = 1
     config = {"configurable": {"thread_id": user_id, "user_id": user_id}}
-    message = "explain about finance in erp"
+    message = "explain about finance in erp make it very short"
     async for message_chunk,meta_data in agent.astream(
             {"messages": message},
             config=config,
