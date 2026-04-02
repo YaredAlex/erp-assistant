@@ -2,10 +2,10 @@ import os
 from datetime import datetime
 import uuid
 from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.mysql import PyMySQLSaver
+from langgraph.checkpoint.mysql.pymysql import PyMySQLSaver
 from langgraph.checkpoint.mysql.aio import AIOMySQLSaver
 from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.store.mysql import MySQLStore
+from langgraph.store.mysql.pymysql import PyMySQLStore
 from langgraph.store.mysql.aio import AIOMySQLStore
 from langgraph.store.memory import InMemoryStore
 from langgraph.store.base import BaseStore
@@ -228,7 +228,7 @@ class AssistantAgent:
             user_id = config["configurable"]["user_id"]
 
             # Retrieve profile memory from the store
-            namespace = ("profile", user_id)
+            namespace = ("profile", str(user_id))
             memories = await store.asearch(namespace)
             if memories:
                 user_profile = memories[0].value
@@ -236,12 +236,12 @@ class AssistantAgent:
                 user_profile = None
             # print("user profile ",user_profile)
             # retrive history
-            namespace = ("history", user_id)
+            namespace = ("history", str(user_id))
             memories = await store.asearch(namespace)
             history = "\n".join(f"{mem.value}" for mem in memories)
             # print("user history ",history)
             # Retrieve custom instructions
-            namespace = ("instructions", user_id)
+            namespace = ("instructions", str(user_id))
             memories = await store.asearch(namespace)
             if memories:
                 instructions = memories[0].value
@@ -267,7 +267,7 @@ class AssistantAgent:
             user_id = config["configurable"]["user_id"]
 
             # Define the namespace for the memories
-            namespace = ("profile", user_id)
+            namespace = ("profile", str(user_id))
             # Retrieve the most recent memories for context
             existing_items = await store.asearch(namespace)
             print("Exisiting_items ", existing_items)
@@ -301,7 +301,7 @@ class AssistantAgent:
             """Summarize recent conversation and persist rolling history summary."""
 
             user_id = config["configurable"]["user_id"]
-            namespace = ("history", user_id)
+            namespace = ("history", str(user_id))
 
             #  Get existing history summary
             existing_items = await store.asearch(namespace)
@@ -534,41 +534,45 @@ class AssistantAgent:
         self.builder.add_edge("blocked",END)
         await self.init_memory()
         self.graph = self.builder.compile(checkpointer=self.memory,store=self.store)
-        with open("graph.png", "wb") as f:
-            f.write(self.graph.get_graph().draw_mermaid_png())
+        # with open("graph.png", "wb") as f:
+        #     f.write(self.graph.get_graph().draw_mermaid_png())
         return self.graph
     
     async def get_graph(self):
         return await self._build_graph()
     
+
     async def init_memory(self):
         sync = self.sync or False
+
         if self.conn:
-            # self.memory = PostgresSaver(self.pool)
             if sync:
                 self.memory = PyMySQLSaver(self.conn)
-                self.store = MySQLStore(self.conn)
+                self.store = PyMySQLStore(self.conn)
                 self.memory.setup()
                 self.store.setup()
             else:
-                # self.apool =  AsyncConnectionPool(conn_string,kwargs={"autocommit":True},open=False)
-                # await self.apool.open(wait=True, timeout=5)
-                self.aconn = await aiomysql.connect(
-                        host=os.getenv('DB_HOST', ''),
-                        user=os.getenv('DB_USER', ''),
-                        password=os.getenv('DB_PASSWORD', ''),
-                        db=os.getenv('DB_BASE', ''),
-                        autocommit=True
-                    )
-                self.memory = AIOMySQLSaver(self.aconn)
-                self.store = AIOMySQLStore(self.aconn)
+                # ✅ CREATE POOL INSTEAD OF SINGLE CONNECTION
+                self.pool = await aiomysql.create_pool(
+                    host=os.getenv('DB_HOST', ''),
+                    user=os.getenv('DB_USER', ''),
+                    password=os.getenv('DB_PASSWORD', ''),
+                    db=os.getenv('DB_BASE', ''),
+                    autocommit=True,
+                    minsize=1,
+                    maxsize=10
+                )
+
+                # ✅ PASS POOL (NOT CONNECTION)
+                self.memory = AIOMySQLSaver(self.pool)
+                self.store = AIOMySQLStore(self.pool)
+
                 await self.memory.setup()
                 await self.store.setup()
+
         else:
             self.memory = InMemorySaver()
             self.store = InMemoryStore()
-        #  NOTE: you need to call .setup() the first time you're using your checkpointer
-    
 
 ####
 #Tools
