@@ -40,3 +40,12 @@ DB_HOST =HOST
 LANGSMITH_API_KEY=LANGSMITH_API_KEY
 LANGSMITH_ENDPOINT =LANGSMITH_ENDPOINT
 ```
+
+## Run Project
+
+```bash
+# run the mcp_server first to server tools for the agent 'on different terminal'
+python mcp_server.py
+# run the main app
+python app.py
+```
