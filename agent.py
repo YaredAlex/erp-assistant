@@ -20,13 +20,12 @@ from langchain_core.tools import tool
 from langchain_deepseek import ChatDeepSeek
 import pymysql
 import re
+import aiomysql
 from dotenv import load_dotenv
 load_dotenv(override=True)
 #Setting environment
 os.environ["LANGCHAIN_TRACING"] = "true"
-os.environ["LANGSMITH_PROJECT"]="Agent"
-
-
+os.environ["LANGSMITH_PROJECT"]="Erp-agent"
 
 llm = ChatDeepSeek(
     model="deepseek-chat",
@@ -200,12 +199,13 @@ class AssistantAgent:
             raise ValueError("llm can not be None")
 
         self.conn = pymysql.connect(
-                host='localhost',
-                user='root',
-                password='root',
-                database='erp_bot',
+                host=os.getenv('DB_HOST','localhost'),
+                user=os.getenv('DB_USER','root'),
+                password=os.getenv('DB_PASSWORD','root'),
+                database=os.getenv('DB_BASE','erp_bot'),
                 autocommit=True 
             )
+
         self.sync = sync
         # binding tool
         self.llm = llm
@@ -543,19 +543,25 @@ class AssistantAgent:
     
     async def init_memory(self):
         sync = self.sync or False
-        if self.conn_string:
+        if self.conn:
             # self.memory = PostgresSaver(self.pool)
             if sync:
-                self.pool = ConnectionPool(conn_string, kwargs={"autocommit": True})
-                self.memory = PostgresSaver(self.pool)
-                self.store = PostgresStore(self.pool)
+                self.memory = PyMySQLSaver(self.conn)
+                self.store = MySQLStore(self.conn)
                 self.memory.setup()
                 self.store.setup()
             else:
-                self.apool =  AsyncConnectionPool(conn_string,kwargs={"autocommit":True},open=False)
-                await self.apool.open(wait=True, timeout=5)
-                self.memory = AsyncPostgresSaver(self.apool)
-                self.store = AsyncPostgresStore(self.apool)
+                # self.apool =  AsyncConnectionPool(conn_string,kwargs={"autocommit":True},open=False)
+                # await self.apool.open(wait=True, timeout=5)
+                self.aconn = await aiomysql.connect(
+                        host=os.getenv('DB_HOST', ''),
+                        user=os.getenv('DB_USER', ''),
+                        password=os.getenv('DB_PASSWORD', ''),
+                        db=os.getenv('DB_BASE', ''),
+                        autocommit=True
+                    )
+                self.memory = AIOMySQLSaver(self.aconn)
+                self.store = AIOMySQLStore(self.aconn)
                 await self.memory.setup()
                 await self.store.setup()
         else:
