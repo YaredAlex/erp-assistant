@@ -12,3 +12,4 @@ psycopg[binary]
 trustcall
 langsmith
 aiomysql
+asyncmy
