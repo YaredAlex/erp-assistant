@@ -580,7 +580,7 @@ class AssistantAgent:
 # User profile schema
 class Profile(BaseModel):
     """
-    Persistent user profile for e-commerce recommendation agent.
+    Persistent user profile.
     Stores long-term preferences and behavioral signals.
     """
 
@@ -600,75 +600,7 @@ class Profile(BaseModel):
         description="Shipping location or country"
     )
 
-    # --- Shopping Preferences ---
-    preferred_categories: List[str] = Field(
-        default_factory=list,
-        description="Product categories the user frequently buys or browses (e.g., electronics, fashion, books)"
-    )
-
-    preferred_brands: List[str] = Field(
-        default_factory=list,
-        description="Brands the user prefers or frequently purchases"
-    )
-
-    preferred_colors: List[str] = Field(
-        default_factory=list,
-        description="Colors the user prefers when selecting products"
-    )
-
-    preferred_sizes: List[str] = Field(
-        default_factory=list,
-        description="Clothing or shoe sizes if applicable"
-    )
-
-    style_preferences: List[str] = Field(
-        default_factory=list,
-        description="Style keywords such as minimalist, sporty, luxury, casual"
-    )
-
-    # --- Budget & Pricing Behavior ---
-    price_range_min: Optional[float] = Field(
-        default=None,
-        description="Minimum preferred budget"
-    )
-
-    price_range_max: Optional[float] = Field(
-        default=None,
-        description="Maximum preferred budget"
-    )
-
-    price_sensitivity: Optional[str] = Field(
-        default=None,
-        description="Indicates if user prefers discounts, premium products, or best value"
-    )
-
-    # --- Behavioral Signals ---
-    frequently_viewed_items: List[str] = Field(
-        default_factory=list,
-        description="IDs or names of products frequently viewed"
-    )
-
-    recently_purchased_items: List[str] = Field(
-        default_factory=list,
-        description="Recent purchases used for recommendations"
-    )
-
-    abandoned_cart_items: List[str] = Field(
-        default_factory=list,
-        description="Products added to cart but not purchased"
-    )
-
-    # --- Recommendation Memory ---
-    disliked_categories: List[str] = Field(
-        default_factory=list,
-        description="Categories the user explicitly dislikes"
-    )
-
-    excluded_brands: List[str] = Field(
-        default_factory=list,
-        description="Brands the user does not want to see"
-    )
-
+    
     # --- Additional Structured Metadata ---
     attributes: Dict[str, str] = Field(
         default_factory=dict,
